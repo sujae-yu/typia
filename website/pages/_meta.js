@@ -4,13 +4,16 @@ export default {
     type: "page",
     hidden: true,
     display: "hidden",
-    // theme: {
-    //   layout: "full",
-    // },
   },
   docs: {
     title: "📖 Guide Documents",
     type: "page",
+  },
+  gurubase: {
+    type: "page",
+    title: "💬 Document Chatbot",
+    href: "https://gurubase.io/g/typia",
+    newWindow: true,
   },
   playground: {
     title: "💻 Playground",
