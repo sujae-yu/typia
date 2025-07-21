@@ -117,35 +117,37 @@ export namespace LlmApplicationProgrammer {
     const prefix: string = `LLM application's function (${JSON.stringify(name)})`;
     if (func.output.size() && func.output.isRequired() === false)
       output.push(
-        `${prefix}'s return type must not be union type with undefined.`,
+        `${prefix} return type cannot be optional (union with undefined).`,
       );
     if (/^[0-9]/.test(name[0] ?? "") === true)
-      output.push(`${prefix} name must not start with a number.`);
+      output.push(`${prefix} name cannot start with a number.`);
     if (/^[a-zA-Z0-9_-]+$/.test(name) === false)
       output.push(
-        `${prefix} name must be alphanumeric with underscore or hyphen.`,
+        `${prefix} name must contain only alphanumeric characters, underscores, or hyphens.`,
       );
     if (name.length > 64)
-      output.push(`${prefix} name must not exceed 64 characters.`);
+      output.push(`${prefix} name cannot exceed 64 characters.`);
     if (func.parameters.length !== 0 && func.parameters.length !== 1)
-      output.push(`${prefix} must have a single parameter.`);
+      output.push(
+        `${prefix} must have exactly one parameter or no parameters.`,
+      );
     if (func.parameters.length !== 0) {
       const type: Metadata = func.parameters[0]!.type;
       if (type.size() !== 1 || type.objects.length !== 1)
-        output.push(`${prefix}'s parameter must be an object type.`);
+        output.push(`${prefix} parameter must be a single object type.`);
       else {
         if (
           type.objects[0]!.type.properties.some(
             (p) => p.key.isSoleLiteral() === false,
           )
         )
-          output.push(`${prefix}'s parameter must not have dynamic keys.`);
+          output.push(`${prefix} parameter cannot have dynamic property keys.`);
         if (type.isRequired() === false)
           output.push(
-            `${prefix}'s parameter must not be union type with undefined.`,
+            `${prefix} parameter cannot be optional (union with undefined).`,
           );
         if (type.nullable === true)
-          output.push(`${prefix}'s parameter must not be nullable.`);
+          output.push(`${prefix} parameter cannot be nullable.`);
       }
     }
     return output;
@@ -156,7 +158,11 @@ export namespace LlmApplicationProgrammer {
     context: ITypiaContext;
     modulo: ts.LeftHandSideExpression;
     metadata: Metadata;
-    config?: Partial<ILlmSchema.ModelConfig[Model]>;
+    config?: Partial<
+      ILlmSchema.ModelConfig[Model] & {
+        equals: boolean;
+      }
+    >;
     name?: string;
   }): ILlmApplication<Model> => {
     const metadata: Metadata = Metadata.unalias(props.metadata);
@@ -197,6 +203,7 @@ export namespace LlmApplicationProgrammer {
           context: props.context,
           modulo: props.modulo,
           className: props.name,
+          config: props.config,
           components: application.components,
           function: func,
           errors: errorMessages,
@@ -228,6 +235,13 @@ export namespace LlmApplicationProgrammer {
     parameter: MetadataParameter | null;
     errors: string[];
     className?: string;
+    config:
+      | Partial<
+          ILlmSchema.ModelConfig[Model] & {
+            equals: boolean;
+          }
+        >
+      | undefined;
   }): ILlmFunction<Model> | null => {
     const parameters: ILlmSchema.ModelParameters[Model] | null =
       writeParameters({
@@ -272,12 +286,13 @@ export namespace LlmApplicationProgrammer {
       })(),
       deprecated: props.function.deprecated,
       tags: props.function.tags,
-      validate: writeValidadtor({
+      validate: writeValidator({
         context: props.context,
         modulo: props.modulo,
         parameter: props.parameter,
         name: props.function.name,
         className: props.className,
+        equals: props.config?.equals ?? false,
       }),
     };
   };
@@ -346,11 +361,12 @@ export namespace LlmApplicationProgrammer {
     return result.value;
   };
 
-  const writeValidadtor = (props: {
+  const writeValidator = (props: {
     context: ITypiaContext;
     modulo: ts.LeftHandSideExpression;
     parameter: MetadataParameter | null;
     name: string;
+    equals: boolean;
     className?: string;
   }): ((props: unknown) => IValidation<unknown>) => {
     if (props.parameter === null)
@@ -360,7 +376,7 @@ export namespace LlmApplicationProgrammer {
           TypeFactory.keyword("any"),
         ),
         config: {
-          equals: false,
+          equals: props.equals,
         },
         name: undefined,
       }) as any;
@@ -375,7 +391,7 @@ export namespace LlmApplicationProgrammer {
       ...props,
       type: props.parameter.tsType!,
       config: {
-        equals: false,
+        equals: props.equals,
       },
       name: props.className
         ? `Parameters<${props.className}[${JSON.stringify(props.name)}]>[0]`
