@@ -36,11 +36,11 @@ import { NoTransformConfigurationError } from "./transformers/NoTransformConfigu
  *     model: "gpt-4o-mini",
  *   },
  *   controllers: [
- *     typia.llm.controller<ReactNativeFileSystem, "chatgpt">(
+ *     typia.llm.controller<ReactNativeFileSystem>(
  *       "filesystem",
  *       new ReactNativeFileSystem(),
  *     ),
- *     typia.llm.controller<ReactNativeGallery, "chatgpt">(
+ *     typia.llm.controller<ReactNativeGallery>(
  *       "gallery",
  *       new ReactNativeGallery(),
  *     ),
@@ -51,44 +51,20 @@ import { NoTransformConfigurationError } from "./transformers/NoTransformConfigu
  * );
  * ```
  *
- * Here is the list of available `Model` types with their corresponding LLM
- * schema. Reading the following list, and determine the `Model` type
- * considering the characteristics of the target LLM provider.
- *
- * - LLM provider schemas
- *
- *   - `chatgpt`:
- *       [`IChatGptSchema`](https://samchon.github.io/openapi/api/types/IChatGptSchema-1.html)
- *   - `claude`:
- *       [`IClaudeSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `deepseek`:
- *       [`IDeepSeekSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `gemini`:
- *       [`IGeminiSchema`](https://samchon.github.io/openapi/api/types/IGeminiSchema-1.html)
- *   - `llama`:
- *       [`ILlamaSchema`](https://samchon.github.io/openapi/api/types/ILlamaSchema-1.html)
- * - Middle layer schemas
- *
- *   - `3.0`: [`ILlmSchemaV3`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3-1.html)
- *   - `3.1`: [`ILlmSchemaV3_1`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3_1-1.html)
- *
  * @author Jeongho Nam - https://github.com/samchon
  * @template Class Target class or interface type collecting the functions to
  *   call
- * @template Model LLM schema model
  * @template Config Configuration of LLM schema composition
  * @param name Identifier name of the controller
  * @param execute Executor instance
- * @param options Options for the LLM application construction
+ * @param config Options for the LLM application construction
  * @returns Controller of LLM function calling
  * @reference https://wrtnlabs.io/agentica/docs/core/controller/typescript/
  */
 export function controller(
   name: string,
   execute: object,
-  options?: Partial<
-    Pick<ILlmApplication.IOptions<any, any>, "separate" | "validate">
-  >,
+  config?: Partial<Pick<ILlmApplication.IConfig<any>, "separate" | "validate">>,
 ): never;
 
 /**
@@ -123,11 +99,11 @@ export function controller(
  *     model: "gpt-4o-mini",
  *   },
  *   controllers: [
- *     typia.llm.controller<ReactNativeFileSystem, "chatgpt">(
+ *     typia.llm.controller<ReactNativeFileSystem>(
  *       "filesystem",
  *       new ReactNativeFileSystem(),
  *     ),
- *     typia.llm.controller<ReactNativeGallery, "chatgpt">(
+ *     typia.llm.controller<ReactNativeGallery>(
  *       "gallery",
  *       new ReactNativeGallery(),
  *     ),
@@ -138,43 +114,20 @@ export function controller(
  * );
  * ```
  *
- * Here is the list of available `Model` types with their corresponding LLM
- * schema. Reading the following list, and determine the `Model` type
- * considering the characteristics of the target LLM provider.
- *
- * - LLM provider schemas
- *
- *   - `chatgpt`:
- *       [`IChatGptSchema`](https://samchon.github.io/openapi/api/types/IChatGptSchema-1.html)
- *   - `claude`:
- *       [`IClaudeSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `deepseek`:
- *       [`IDeepSeekSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `gemini`:
- *       [`IGeminiSchema`](https://samchon.github.io/openapi/api/types/IGeminiSchema-1.html)
- *   - `llama`:
- *       [`ILlamaSchema`](https://samchon.github.io/openapi/api/types/ILlamaSchema-1.html)
- * - Middle layer schemas
- *
- *   - `3.0`: [`ILlmSchemaV3`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3-1.html)
- *   - `3.1`: [`ILlmSchemaV3_1`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3_1-1.html)
- *
  * @author Jeongho Nam - https://github.com/samchon
  * @template Class Target class or interface type collecting the functions to
  *   call
- * @template Model LLM schema model
  * @template Config Configuration of LLM schema composition
  * @param name Identifier name of the controller
  * @param execute Executor instance
- * @param options Options for the LLM application construction
+ * @param config Options for the LLM application construction
  * @returns Controller of LLM function calling
  * @reference https://wrtnlabs.io/agentica/docs/core/controller/typescript/
  */
 export function controller<
   Class extends Record<string, any>,
-  Model extends ILlmSchema.Model,
   Config extends Partial<
-    ILlmSchema.ModelConfig[Model] & {
+    ILlmSchema.IConfig & {
       /**
        * Whether to disallow superfluous properties or not.
        *
@@ -190,10 +143,10 @@ export function controller<
 >(
   name: string,
   execute: Class,
-  options?: Partial<
-    Pick<ILlmApplication.IOptions<Model, Class>, "separate" | "validate">
+  config?: Partial<
+    Pick<ILlmApplication.IConfig<Class>, "separate" | "validate">
   >,
-): ILlmController<Model>;
+): ILlmController<Class>;
 
 /** @internal */
 export function controller(..._args: any[]): never {
@@ -219,7 +172,7 @@ export function controller(..._args: any[]): never {
  * must be composed by human, not by LLM. File uploading feature or some
  * sensitive information like security keys (password) are the examples. In that
  * case, you can separate the function parameters to both LLM and human sides by
- * configuring the {@link ILlmApplication.IOptions.separate} property. The
+ * configuring the {@link ILlmApplication.IConfig.separate} property. The
  * separated parameters are assigned to the {@link ILlmFunction.separated}
  * property.
  *
@@ -229,46 +182,22 @@ export function controller(..._args: any[]): never {
  * return value to the LLM by system prompt. The LLM will continue the next
  * conversation based on the return value.
  *
- * Additionally, if you've configured {@link ILlmApplication.IOptions.separate},
+ * Additionally, if you've configured {@link ILlmApplication.IConfig.separate},
  * so that the parameters are separated to human and LLM sides, you can merge
  * these human and LLM sides' parameters into one through
  * {@link HttpLlm.mergeParameters} before the actual LLM function call
  * execution.
  *
- * Here is the list of available `Model` types with their corresponding LLM
- * schema. Reading the following list, and determine the `Model` type
- * considering the characteristics of the target LLM provider.
- *
- * - LLM provider schemas
- *
- *   - `chatgpt`:
- *       [`IChatGptSchema`](https://github.com/samchon/openapi/blob/master/src/structures/IChatGptSchema.ts)
- *   - `claude`:
- *       [`IClaudeSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `deepseek`:
- *       [`IDeepSeekSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `gemini`:
- *       [`IGeminiSchema`](https://samchon.github.io/openapi/api/types/IGeminiSchema-1.html)
- *   - `llama`:
- *       [`ILlamaSchema`](https://samchon.github.io/openapi/api/types/ILlamaSchema-1.html)
- * - Middle layer schemas
- *
- *   - `3.0`: [`ILlmSchemaV3`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3-1.html)
- *   - `3.1`: [`ILlmSchemaV3_1`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3_1-1.html)
- *
  * @author Jeongho Nam - https://github.com/samchon
  * @template Class Target class or interface type collecting the functions to
  *   call
- * @template Model LLM schema model
  * @template Config Configuration of LLM schema composition
- * @param options Options for the LLM application construction
+ * @param config Options for the LLM application construction
  * @returns Application of LLM function calling schemas
  * @reference https://platform.openai.com/docs/guides/function-calling
  */
 export function application(
-  options?: Partial<
-    Pick<ILlmApplication.IOptions<any, any>, "separate" | "validate">
-  >,
+  config?: Partial<Pick<ILlmApplication.IConfig<any>, "separate" | "validate">>,
 ): never;
 
 /**
@@ -288,7 +217,7 @@ export function application(
  * must be composed by human, not by LLM. File uploading feature or some
  * sensitive information like security keys (password) are the examples. In that
  * case, you can separate the function parameters to both LLM and human sides by
- * configuring the {@link ILlmApplication.IOptions.separate} property. The
+ * configuring the {@link ILlmApplication.IConfig.separate} property. The
  * separated parameters are assigned to the {@link ILlmFunction.separated}
  * property.
  *
@@ -298,47 +227,24 @@ export function application(
  * return value to the LLM by system prompt. The LLM will continue the next
  * conversation based on the return value.
  *
- * Additionally, if you've configured {@link ILlmApplication.IOptions.separate},
+ * Additionally, if you've configured {@link ILlmApplication.IConfig.separate},
  * so that the parameters are separated to human and LLM sides, you can merge
  * these human and LLM sides' parameters into one through
  * {@link HttpLlm.mergeParameters} before the actual LLM function call
  * execution.
  *
- * Here is the list of available `Model` types with their corresponding LLM
- * schema. Reading the following list, and determine the `Model` type
- * considering the characteristics of the target LLM provider.
- *
- * - LLM provider schemas
- *
- *   - `chatgpt`:
- *       [`IChatGptSchema`](https://github.com/samchon/openapi/blob/master/src/structures/IChatGptSchema.ts)
- *   - `claude`:
- *       [`IClaudeSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `deepseek`:
- *       [`IDeepSeekSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `gemini`:
- *       [`IGeminiSchema`](https://samchon.github.io/openapi/api/types/IGeminiSchema-1.html)
- *   - `llama`:
- *       [`ILlamaSchema`](https://samchon.github.io/openapi/api/types/ILlamaSchema-1.html)
- * - Middle layer schemas
- *
- *   - `3.0`: [`ILlmSchemaV3`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3-1.html)
- *   - `3.1`: [`ILlmSchemaV3_1`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3_1-1.html)
- *
  * @author Jeongho Nam - https://github.com/samchon
  * @template Class Target class or interface type collecting the functions to
  *   call
- * @template Model LLM schema model
  * @template Config Configuration of LLM schema composition
- * @param options Options for the LLM application construction
+ * @param config Options for the LLM application construction
  * @returns Application of LLM function calling schemas
  * @reference https://platform.openai.com/docs/guides/function-calling
  */
 export function application<
   Class extends Record<string, any>,
-  Model extends ILlmSchema.Model,
   Config extends Partial<
-    {
+    ILlmSchema.IConfig & {
       /**
        * Whether to disallow superfluous properties or not.
        *
@@ -349,13 +255,13 @@ export function application<
        * @default false
        */
       equals: boolean;
-    } & ILlmSchema.ModelConfig[Model]
+    }
   > = {},
 >(
-  options?: Partial<
-    Pick<ILlmApplication.IOptions<Model, Class>, "separate" | "validate">
+  config?: Partial<
+    Pick<ILlmApplication.IConfig<Class>, "separate" | "validate">
   >,
-): ILlmApplication<Model, Class>;
+): ILlmApplication<Class>;
 
 /** @internal */
 export function application(): never {
@@ -385,29 +291,7 @@ export function application(): never {
  * output, not only a plain text, by filling the parameters from the
  * conversation (maybe chatting text) with user (human).
  *
- * Here is the list of available `Model` types with their corresponding LLM
- * schema. Reading the following list, and determine the `Model` type
- * considering the characteristics of the target LLM provider.
- *
- * - LLM provider schemas
- *
- *   - `chatgpt`:
- *       [`IChatGptSchema`](https://github.com/samchon/openapi/blob/master/src/structures/IChatGptSchema.ts)
- *   - `claude`:
- *       [`IClaudeSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `deepseek`:
- *       [`IDeepSeekSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `gemini`:
- *       [`IGeminiSchema`](https://samchon.github.io/openapi/api/types/IGeminiSchema-1.html)
- *   - `llama`:
- *       [`ILlamaSchema`](https://samchon.github.io/openapi/api/types/ILlamaSchema-1.html)
- * - Middle layer schemas
- *
- *   - `3.0`: [`ILlmSchemaV3`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3-1.html)
- *   - `3.1`: [`ILlmSchemaV3_1`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3_1-1.html)
- *
  * @template Parameters Target parameters type
- * @template Model LLM schema model
  * @template Config Configuration of LLM schema composition
  * @returns LLM parameters schema
  * @reference https://platform.openai.com/docs/guides/function-calling
@@ -436,29 +320,7 @@ export function parameters(): never;
  * output, not only a plain text, by filling the parameters from the
  * conversation (maybe chatting text) with user (human).
  *
- * Here is the list of available `Model` types with their corresponding LLM
- * schema. Reading the following list, and determine the `Model` type
- * considering the characteristics of the target LLM provider.
- *
- * - LLM provider schemas
- *
- *   - `chatgpt`:
- *       [`IChatGptSchema`](https://github.com/samchon/openapi/blob/master/src/structures/IChatGptSchema.ts)
- *   - `claude`:
- *       [`IClaudeSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `deepseek`:
- *       [`IDeepSeekSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `gemini`:
- *       [`IGeminiSchema`](https://samchon.github.io/openapi/api/types/IGeminiSchema-1.html)
- *   - `llama`:
- *       [`ILlamaSchema`](https://samchon.github.io/openapi/api/types/ILlamaSchema-1.html)
- * - Middle layer schemas
- *
- *   - `3.0`: [`ILlmSchemaV3`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3-1.html)
- *   - `3.1`: [`ILlmSchemaV3_1`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3_1-1.html)
- *
  * @template Parameters Target parameters type
- * @template Model LLM schema model
  * @template Config Configuration of LLM schema composition
  * @returns LLM parameters schema
  * @reference https://platform.openai.com/docs/guides/function-calling
@@ -466,9 +328,8 @@ export function parameters(): never;
  */
 export function parameters<
   Parameters extends Record<string, any>,
-  Model extends ILlmSchema.Model,
-  Config extends Partial<ILlmSchema.ModelConfig[Model]> = {},
->(): ILlmSchema.ModelParameters[Model];
+  Config extends Partial<ILlmSchema.IConfig> = {},
+>(): ILlmSchema.IParameters;
 
 /** @internal */
 export function parameters(): never {
@@ -485,28 +346,6 @@ export function parameters(): never {
  * https://platform.openai.com/docs/guides/function-calling), from a TypeScript
  * type.
  *
- * The returned {@link ILlmSchema} type will be specified by the `Model`
- * argument, and here is the list of available `Model` types with their
- * corresponding LLM schema. Reading the following list, and determine the
- * `Model` type considering the characteristics of the target LLM provider.
- *
- * - LLM provider schemas
- *
- *   - `chatgpt`:
- *       [`IChatGptSchema`](https://github.com/samchon/openapi/blob/master/src/structures/IChatGptSchema.ts)
- *   - `claude`:
- *       [`IClaudeSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `deepseek`:
- *       [`IDeepSeekSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `gemini`:
- *       [`IGeminiSchema`](https://samchon.github.io/openapi/api/types/IGeminiSchema-1.html)
- *   - `llama`:
- *       [`ILlamaSchema`](https://samchon.github.io/openapi/api/types/ILlamaSchema-1.html)
- * - Middle layer schemas
- *
- *   - `3.0`: [`ILlmSchemaV3`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3-1.html)
- *   - `3.1`: [`ILlmSchemaV3_1`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3_1-1.html)
- *
  * If you actually want to perform the LLM function calling with TypeScript
  * functions, you can do it with the {@link application} function. Otherwise you
  * hope to perform the structured output, {@link parameters} function is better.
@@ -530,7 +369,6 @@ export function parameters(): never {
  *
  * @author Jeongho Nam - https://github.com/samchon
  * @template T Target type
- * @template Model LLM schema model
  * @template Config Configuration of LLM schema composition
  * @returns LLM schema
  * @reference https://platform.openai.com/docs/guides/function-calling
@@ -546,27 +384,6 @@ export function schema(): never;
  * https://platform.openai.com/docs/guides/function-calling), from a TypeScript
  * type.
  *
- * The returned {@link ILlmSchema} type will be specified by the `Model`
- * argument, and here is the list of available `Model` types with their
- * corresponding LLM schema:
- *
- * - LLM provider schemas
- *
- *   - `chatgpt`:
- *       [`IChatGptSchema`](https://github.com/samchon/openapi/blob/master/src/structures/IChatGptSchema.ts)
- *   - `claude`:
- *       [`IClaudeSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `deepseek`:
- *       [`IDeepSeekSchema`](https://samchon.github.io/openapi/api/types/IClaudeSchema-1.html)
- *   - `gemini`:
- *       [`IGeminiSchema`](https://samchon.github.io/openapi/api/types/IGeminiSchema-1.html)
- *   - `llama`:
- *       [`ILlamaSchema`](https://samchon.github.io/openapi/api/types/ILlamaSchema-1.html)
- * - Middle layer schemas
- *
- *   - `3.0`: [`ILlmSchemaV3`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3-1.html)
- *   - `3.1`: [`ILlmSchemaV3_1`](https://samchon.github.io/openapi/api/types/ILlmSchemaV3_1-1.html)
- *
  * If you actually want to perform the LLM function calling with TypeScript
  * functions, you can do it with the {@link application} function. Otherwise you
  * hope to perform the structured output, {@link parameters} function is better.
@@ -590,24 +407,14 @@ export function schema(): never;
  *
  * @author Jeongho Nam - https://github.com/samchon
  * @template T Target type
- * @template Model LLM schema model
  * @template Config Configuration of LLM schema composition
  * @returns LLM schema
  * @reference https://platform.openai.com/docs/guides/function-calling
  * @reference https://platform.openai.com/docs/guides/structured-outputs
  */
-export function schema<
-  T,
-  Model extends ILlmSchema.Model,
-  Config extends Partial<ILlmSchema.ModelConfig[Model]> = {},
->(
-  ...$defs: Extract<
-    ILlmSchema.ModelSchema[Model],
-    { $ref: string }
-  > extends never
-    ? []
-    : [Record<string, ILlmSchema.ModelSchema[Model]>]
-): ILlmSchema.ModelSchema[Model];
+export function schema<T, Config extends Partial<ILlmSchema.IConfig> = {}>(
+  $defs: Record<string, ILlmSchema>,
+): ILlmSchema;
 
 /** @internal */
 export function schema(): never {
