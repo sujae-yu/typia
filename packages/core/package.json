@@ -1,11 +1,16 @@
 {
   "name": "@typia/core",
-  "version": "11.0.1",
+  "version": "12.0.0-dev.20260307-2",
   "description": "Superfast runtime validators with only one line",
   "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
   "scripts": {
-    "build": "rimraf lib && tsc",
-    "dev": "rimraf lib && tsc --watch"
+    "build": "rimraf lib && tsc && rollup -c",
+    "dev": "rimraf lib && tsc --watch",
+    "prepack": "pnpm run build"
   },
   "repository": {
     "type": "git",
@@ -22,14 +27,20 @@
     "@typia/utils": "workspace:^"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "catalog:rollup",
+    "@rollup/plugin-node-resolve": "catalog:rollup",
+    "@rollup/plugin-typescript": "catalog:rollup",
     "@types/node": "catalog:utils",
     "@types/ts-expose-internals": "catalog:typescript",
     "rimraf": "catalog:utils",
+    "rollup": "catalog:rollup",
+    "rollup-plugin-auto-external": "catalog:rollup",
+    "rollup-plugin-node-externals": "catalog:rollup",
+    "tinyglobby": "^0.2.12",
     "typescript": "catalog:typescript"
   },
   "sideEffects": false,
   "files": [
-    "LICENSE",
     "README.md",
     "package.json",
     "lib",
@@ -75,7 +86,15 @@
   "publishConfig": {
     "access": "public",
     "main": "lib/index.js",
-    "typings": "lib/index.d.ts",
-    "module": "lib/index.mjs"
+    "module": "lib/index.mjs",
+    "types": "lib/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./lib/index.d.ts",
+        "import": "./lib/index.mjs",
+        "default": "./lib/index.js"
+      },
+      "./package.json": "./package.json"
+    }
   }
 }

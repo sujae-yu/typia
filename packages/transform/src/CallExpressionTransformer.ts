@@ -69,8 +69,12 @@ import { JsonStringifyTransformer } from "./features/json/JsonStringifyTransform
 import { JsonValidateParseTransformer } from "./features/json/JsonValidateParseTransformer";
 import { JsonValidateStringifyTransformer } from "./features/json/JsonValidateStringifyTransformer";
 import { LlmApplicationTransformer } from "./features/llm/LlmApplicationTransformer";
+import { LlmCoerceTransformer } from "./features/llm/LlmCoerceTransformer";
 import { LlmControllerTransformer } from "./features/llm/LlmControllerTransformer";
+import { LlmCreateCoerceTransformer } from "./features/llm/LlmCreateCoerceTransformer";
+import { LlmCreateParseTransformer } from "./features/llm/LlmCreateParseTransformer";
 import { LlmParametersTransformer } from "./features/llm/LlmParametersTransformer";
+import { LlmParseTransformer } from "./features/llm/LlmParseTransformer";
 import { LlmSchemaTransformer } from "./features/llm/LlmSchemaTransformer";
 import { MiscAssertCloneTransformer } from "./features/misc/MiscAssertCloneTransformer";
 import { MiscAssertPruneTransformer } from "./features/misc/MiscAssertPruneTransformer";
@@ -116,6 +120,8 @@ import { ProtobufValidateDecodeTransformer } from "./features/protobuf/ProtobufV
 import { ProtobufValidateEncodeTransformer } from "./features/protobuf/ProtobufValidateEncodeTransformer";
 import { ReflectMetadataTransformer } from "./features/reflect/ReflectMetadataTransformer";
 import { ReflectNameTransformer } from "./features/reflect/ReflectNameTransformer";
+import { ReflectSchemaTransformer } from "./features/reflect/ReflectSchemaTransformer";
+import { ReflectSchemasTransformer } from "./features/reflect/ReflectSchemasTransformer";
 
 /**
  * Transforms `typia.*` function call expressions.
@@ -419,6 +425,10 @@ const FUNCTORS: Record<string, Record<string, () => Task>> = {
     application: () => LlmApplicationTransformer.transform,
     parameters: () => LlmParametersTransformer.transform,
     schema: () => LlmSchemaTransformer.transform,
+    parse: () => LlmParseTransformer.transform,
+    createParse: () => LlmCreateParseTransformer.transform,
+    coerce: () => LlmCoerceTransformer.transform,
+    createCoerce: () => LlmCreateCoerceTransformer.transform,
   },
   json: {
     // METADATA
@@ -478,6 +488,8 @@ const FUNCTORS: Record<string, Record<string, () => Task>> = {
   reflect: {
     metadata: () => ReflectMetadataTransformer.transform,
     name: () => ReflectNameTransformer.transform,
+    schema: () => ReflectSchemaTransformer.transform,
+    schemas: () => ReflectSchemasTransformer.transform,
   },
   misc: {
     literals: () => MiscLiteralsTransformer.transform,

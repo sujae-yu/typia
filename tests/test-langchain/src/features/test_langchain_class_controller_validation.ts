@@ -2,7 +2,7 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { TestValidator } from "@nestia/e2e";
 import { ILlmController, IValidation } from "@typia/interface";
 import { toLangChainTools } from "@typia/langchain";
-import { stringifyValidationFailure } from "@typia/utils";
+import { LlmJson } from "@typia/utils";
 import typia from "typia";
 
 import { Calculator } from "../structures/Calculator";
@@ -25,19 +25,20 @@ export const test_langchain_class_controller_validation =
     }
 
     // 4. Test with invalid arguments - string instead of number
-    // typia validates and returns stringifyValidationFailure format
+    // typia validates and returns LlmJson.stringify format
     const invalidResult = await addTool.invoke({ x: "not a number", y: 5 });
 
     // Generate expected validation error message using typia
-    const expected: IValidation = typia.validate<Calculator.IProps>({
-      x: "not a number",
-      y: 5,
-    });
+    const coerced: unknown = LlmJson.coerce(
+      { x: "not a number", y: 5 },
+      controller.application.functions.find((f) => f.name === "add")!.parameters,
+    );
+    const expected: IValidation = typia.validate<Calculator.IProps>(coerced);
     if (expected.success === true) {
       throw new Error("Expected validation to fail, but it succeeded.");
     }
 
-    const expectedMessage: string = stringifyValidationFailure(expected);
+    const expectedMessage: string = LlmJson.stringify(expected);
     TestValidator.equals(
       "Validation failure message should match",
       invalidResult,
@@ -46,5 +47,7 @@ export const test_langchain_class_controller_validation =
 
     // 5. Test with valid arguments - should succeed
     const validResult = await addTool.invoke({ x: 10, y: 5 });
-    TestValidator.equals("valid args should work", validResult, "15");
+    TestValidator.equals("valid args should work", JSON.parse(validResult), {
+      value: 15,
+    });
   };

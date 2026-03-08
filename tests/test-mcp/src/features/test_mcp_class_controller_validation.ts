@@ -4,7 +4,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { TestValidator } from "@nestia/e2e";
 import { ILlmController, IValidation } from "@typia/interface";
 import { registerMcpControllers } from "@typia/mcp";
-import { stringifyValidationFailure } from "@typia/utils";
+import { LlmJson } from "@typia/utils";
 import typia from "typia";
 
 import { Calculator } from "../structures/Calculator";
@@ -54,14 +54,15 @@ export const test_mcp_class_controller_validation = async (): Promise<void> => {
     },
     { signal: new AbortController().signal },
   );
-  const expected: IValidation = typia.validate<Calculator.IProps>({
-    x: "not a number",
-    y: 5,
-  });
+  const coerced: unknown = LlmJson.coerce(
+    { x: "not a number", y: 5 },
+    controller.application.functions.find((f) => f.name === "add")!.parameters,
+  );
+  const expected: IValidation = typia.validate<Calculator.IProps>(coerced);
   if (expected.success === true)
     throw new Error("Expected validation to fail, but it succeeded.");
 
-  const message: string = stringifyValidationFailure(expected);
+  const message: string = LlmJson.stringify(expected);
   TestValidator.predicate(
     "Validation failure",
     () =>

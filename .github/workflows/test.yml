@@ -5,8 +5,8 @@ on:
       - '.github/workflows/build.yml'
       - 'packages/*/src/**'
       - 'packages/*/package.json'
-      - 'tests/*/test-*/**'
-      - 'tests/*/test-*/package.json'
+      - 'tests/test-*/src/**'
+      - 'tests/test-*/package.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.x
+          node-version: 24.x
       - uses: pnpm/action-setup@v4
       
       - name: Install Dependencies

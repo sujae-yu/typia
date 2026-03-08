@@ -1,9 +1,11 @@
 export {
   // validate
   AssertionGuard,
+  IJsonParseResult,
   IValidation,
   IRandomGenerator,
   // json
+  OpenApi,
   IJsonSchemaCollection,
   IJsonSchemaUnit,
   // llm
@@ -24,6 +26,8 @@ export {
   CamelCase,
   PascalCase,
   SnakeCase,
+  // http
+  IReadableURLSearchParams,
   // namespaces
   tags,
 } from "@typia/interface";

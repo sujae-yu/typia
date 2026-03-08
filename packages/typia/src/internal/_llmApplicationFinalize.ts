@@ -1,32 +1,24 @@
-import { ILlmApplication, IValidation } from "@typia/interface";
-import { LlmSchemaConverter } from "@typia/utils";
+import { IJsonParseResult, ILlmApplication } from "@typia/interface";
+import { LlmJson, LlmSchemaConverter } from "@typia/utils";
 
-export const _llmApplicationFinalize = (
-  app: ILlmApplication,
+export const _llmApplicationFinalize = <Class extends object = any>(
+  app: ILlmApplication.__IPrimitive<Class>,
   config?: Partial<
-    Pick<ILlmApplication.IConfig, "separate" | "validate"> & {
+    Pick<ILlmApplication.IConfig, "validate"> & {
       equals?: boolean;
     }
   >,
-): void => {
-  app.config = {
+): ILlmApplication<Class> => ({
+  ...app,
+  config: {
     ...LlmSchemaConverter.getConfig(),
-    separate: config?.separate ?? null,
     validate: config?.validate ?? null,
-  };
-  if (app.config.separate !== null)
-    for (const func of app.functions)
-      func.separated = LlmSchemaConverter.separate({
-        parameters: func.parameters,
-        predicate: app.config.separate,
-        equals: config?.equals ?? false,
-      });
-  if (app.config.validate !== null)
-    for (const func of app.functions)
-      if (typeof app.config.validate?.[func.name] === "function")
-        func.validate = app.config.validate[
-          func.name
-        ]! satisfies Validator as Validator;
-};
-
-type Validator = (input: unknown) => IValidation<unknown>;
+  },
+  functions: app.functions.map((func) => ({
+    ...func,
+    parse: (input: string): IJsonParseResult<unknown> =>
+      LlmJson.parse(input, func.parameters),
+    coerce: (input: unknown): unknown => LlmJson.coerce(input, func.parameters),
+    validate: config?.validate?.[func.name] ?? func.validate,
+  })),
+});

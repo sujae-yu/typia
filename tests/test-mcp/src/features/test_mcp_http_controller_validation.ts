@@ -4,11 +4,7 @@ import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { TestValidator } from "@nestia/e2e";
 import { IHttpLlmController, IValidation, OpenApi } from "@typia/interface";
 import { registerMcpControllers } from "@typia/mcp";
-import {
-  HttpLlm,
-  OpenApiValidator,
-  stringifyValidationFailure,
-} from "@typia/utils";
+import { HttpLlm, LlmJson, OpenApiValidator } from "@typia/utils";
 
 export const test_mcp_http_controller_validation = async (): Promise<void> => {
   // 1. Create minimal OpenApi document with a simple numeric schema
@@ -43,8 +39,12 @@ export const test_mcp_http_controller_validation = async (): Promise<void> => {
               content: {
                 "application/json": {
                   schema: {
-                    type: "number",
-                  } satisfies OpenApi.IJsonSchema.INumber,
+                    type: "object",
+                    properties: {
+                      value: { type: "number" },
+                    },
+                    required: ["value"],
+                  } satisfies OpenApi.IJsonSchema.IObject,
                 },
               },
             },
@@ -106,7 +106,12 @@ export const test_mcp_http_controller_validation = async (): Promise<void> => {
     { signal: new AbortController().signal },
   );
 
-  // 7. Verify validation matches stringifyValidationFailure output
+  // 7. Verify validation matches LlmJson.stringify output
+  const func = controller.application.functions.find(
+    (f) => f.name === "calculate_add_post",
+  )!;
+  const coerced: unknown = LlmJson.coerce(invalidArgs, func.parameters);
+
   const parameterSchema: OpenApi.IJsonSchema.IObject = {
     type: "object",
     properties: {
@@ -118,7 +123,7 @@ export const test_mcp_http_controller_validation = async (): Promise<void> => {
   const expected: IValidation = OpenApiValidator.validate({
     components: {},
     schema: parameterSchema,
-    value: invalidArgs,
+    value: coerced,
     required: true,
     equals: false,
   });
@@ -126,7 +131,7 @@ export const test_mcp_http_controller_validation = async (): Promise<void> => {
   if (expected.success === true)
     throw new Error("Expected validation to fail, but it succeeded.");
 
-  const message: string = stringifyValidationFailure(expected);
+  const message: string = LlmJson.stringify(expected);
   TestValidator.predicate(
     "Validation failure",
     () =>

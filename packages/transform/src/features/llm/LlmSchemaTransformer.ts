@@ -1,11 +1,9 @@
 import {
-  IdentifierFactory,
-  LiteralFactory,
   LlmMetadataFactory,
   LlmSchemaProgrammer,
+  MetadataCollection,
   MetadataFactory,
   MetadataSchema,
-  MetadataStorage,
 } from "@typia/core";
 import { ILlmSchema, ValidationPipe } from "@typia/interface";
 import ts from "typescript";
@@ -14,9 +12,7 @@ import { ITransformProps } from "../../ITransformProps";
 import { TransformerError } from "../../TransformerError";
 
 export namespace LlmSchemaTransformer {
-  export const transform = (
-    props: Omit<ITransformProps, "modulo">,
-  ): ts.Expression => {
+  export const transform = (props: ITransformProps): ts.Expression => {
     // GET GENERIC ARGUMENT
     if (!props.expression.typeArguments?.length)
       throw new TransformerError({
@@ -55,8 +51,8 @@ export namespace LlmSchemaTransformer {
                     })
                 : undefined,
           },
-          components: new MetadataStorage({
-            replace: MetadataStorage.replace,
+          components: new MetadataCollection({
+            replace: MetadataCollection.replace,
           }),
           type,
         });
@@ -70,64 +66,22 @@ export namespace LlmSchemaTransformer {
     analyze(true);
 
     // GENERATE LLM SCHEMA
-    const out: LlmSchemaProgrammer.IOutput = LlmSchemaProgrammer.write({
+    const expr = LlmSchemaProgrammer.write({
+      context: props.context,
       metadata: analyze(false),
       config,
     });
-    const schemaTypeNode = props.context.importer.type({
-      file: "@samchon/openapi",
-      name: "ILlmSchema",
-    });
-    const literal = ts.factory.createAsExpression(
-      LiteralFactory.write(out.schema),
-      schemaTypeNode,
-    );
-    if (Object.keys(out.$defs).length === 0) return literal;
-    return ts.factory.createCallExpression(
-      ts.factory.createArrowFunction(
-        undefined,
-        undefined,
-        [
-          IdentifierFactory.parameter(
-            "$defs",
-            ts.factory.createTypeReferenceNode("Record", [
-              ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-              schemaTypeNode,
-            ]),
-            undefined,
-          ),
-        ],
-        undefined,
-        undefined,
-        ts.factory.createBlock(
-          [
-            ts.factory.createExpressionStatement(
-              ts.factory.createCallExpression(
-                ts.factory.createIdentifier("Object.assign"),
-                undefined,
-                [
-                  ts.factory.createIdentifier("$defs"),
-                  ts.factory.createAsExpression(
-                    LiteralFactory.write(out.$defs),
-                    ts.factory.createTypeReferenceNode("Record", [
-                      ts.factory.createKeywordTypeNode(
-                        ts.SyntaxKind.StringKeyword,
-                      ),
-                      schemaTypeNode,
-                    ]),
-                  ),
-                ],
-              ),
-            ),
-            ts.factory.createReturnStatement(literal),
-          ],
-          true,
-        ),
-      ),
-      undefined,
-      props.expression.arguments?.[0] !== undefined
-        ? [props.expression.arguments[0]!]
-        : [],
-    );
+
+    // If user provided $defs argument and expression is a function, call it with $defs
+    if (
+      props.expression.arguments?.[0] !== undefined &&
+      ts.isArrowFunction(expr)
+    ) {
+      return ts.factory.createCallExpression(expr, undefined, [
+        props.expression.arguments[0]!,
+      ]);
+    }
+
+    return expr;
   };
 }

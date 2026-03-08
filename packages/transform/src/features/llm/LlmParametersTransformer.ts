@@ -1,10 +1,9 @@
 import {
-  LiteralFactory,
   LlmMetadataFactory,
   LlmParametersProgrammer,
+  MetadataCollection,
   MetadataFactory,
   MetadataSchema,
-  MetadataStorage,
 } from "@typia/core";
 import { ILlmSchema, ValidationPipe } from "@typia/interface";
 import ts from "typescript";
@@ -13,9 +12,7 @@ import { ITransformProps } from "../../ITransformProps";
 import { TransformerError } from "../../TransformerError";
 
 export namespace LlmParametersTransformer {
-  export const transform = (
-    props: Omit<ITransformProps, "modulo">,
-  ): ts.Expression => {
+  export const transform = (props: ITransformProps): ts.Expression => {
     // GET GENERIC ARGUMENT
     if (!props.expression.typeArguments?.length)
       throw new TransformerError({
@@ -55,8 +52,8 @@ export namespace LlmParametersTransformer {
                     })
                 : undefined,
           },
-          components: new MetadataStorage({
-            replace: MetadataStorage.replace,
+          components: new MetadataCollection({
+            replace: MetadataCollection.replace,
           }),
           type,
         });
@@ -69,20 +66,11 @@ export namespace LlmParametersTransformer {
     };
     analyze(true);
 
-    // GENERATE LLM SCHEMA
-    const out: ILlmSchema.IParameters = LlmParametersProgrammer.write({
+    // GENERATE LLM PARAMETERS SCHEMA
+    return LlmParametersProgrammer.write({
+      context: props.context,
       metadata: analyze(false),
       config,
     });
-    return ts.factory.createAsExpression(
-      LiteralFactory.write(out),
-      props.context.importer.type({
-        file: "@samchon/openapi",
-        name: ts.factory.createQualifiedName(
-          ts.factory.createIdentifier("ILlmSchema"),
-          ts.factory.createIdentifier("IParameters"),
-        ),
-      }),
-    );
   };
 }

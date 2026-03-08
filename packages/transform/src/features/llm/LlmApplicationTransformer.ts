@@ -1,13 +1,10 @@
 import {
-  ExpressionFactory,
   ITypiaContext,
-  LiteralFactory,
   LlmApplicationProgrammer,
   LlmMetadataFactory,
+  MetadataCollection,
   MetadataFactory,
   MetadataSchema,
-  MetadataStorage,
-  StatementFactory,
 } from "@typia/core";
 import { ILlmApplication, ILlmSchema, ValidationPipe } from "@typia/interface";
 import ts from "typescript";
@@ -17,40 +14,72 @@ import { TransformerError } from "../../TransformerError";
 
 export namespace LlmApplicationTransformer {
   export const transform = (props: ITransformProps): ts.Expression => {
-    const dec = decompose("application", props);
-    if (dec === null) return props.expression;
+    // GET GENERIC ARGUMENT
+    if (!props.expression.typeArguments?.length)
+      throw new TransformerError({
+        code: "typia.llm.application",
+        message: "no generic argument.",
+      });
+    const top: ts.Node = props.expression.typeArguments[0]!;
+    if (ts.isTypeNode(top) === false) return props.expression;
 
-    const literal: ts.Expression = ts.factory.createAsExpression(
-      LiteralFactory.write(dec.application),
-      props.context.importer.type({
-        file: "@samchon/openapi",
-        name: "ILlmApplication",
-        arguments: [dec.node],
-      }),
-    );
-    if (props.expression.arguments?.[0] === undefined) return literal;
-    return ExpressionFactory.selfCall(
-      ts.factory.createBlock(
-        [
-          StatementFactory.constant({
-            name: "application",
-            value: literal,
+    // GET CONFIG
+    const config:
+      | Partial<
+          ILlmSchema.IConfig & {
+            equals: boolean;
+          }
+        >
+      | undefined = LlmMetadataFactory.getConfig({
+      context: props.context,
+      method: "application",
+      node: props.expression.typeArguments[1],
+    });
+    const type: ts.Type = props.context.checker.getTypeFromTypeNode(top);
+
+    // VALIDATE TYPE
+    const analyze = (validate: boolean): MetadataSchema => {
+      const result: ValidationPipe<MetadataSchema, MetadataFactory.IError> =
+        MetadataFactory.analyze({
+          checker: props.context.checker,
+          transformer: props.context.transformer,
+          options: {
+            absorb: validate,
+            escape: true,
+            constant: true,
+            functional: true,
+            validate:
+              validate === true
+                ? (metadata, explore) =>
+                    LlmApplicationProgrammer.validate({
+                      config,
+                      metadata,
+                      explore,
+                    })
+                : undefined,
+          },
+          components: new MetadataCollection({
+            replace: MetadataCollection.replace,
           }),
-          ts.factory.createExpressionStatement(
-            finalize({
-              context: props.context,
-              value: ts.factory.createIdentifier("application"),
-              argument: props.expression.arguments[0]!,
-              equals: dec.config?.equals,
-            }),
-          ),
-          ts.factory.createReturnStatement(
-            ts.factory.createIdentifier("application"),
-          ),
-        ],
-        true,
-      ),
-    );
+          type,
+        });
+      if (result.success === false)
+        throw TransformerError.from({
+          code: "typia.llm.application",
+          errors: result.errors,
+        });
+      return result.data;
+    };
+    analyze(true);
+
+    // GENERATE LLM APPLICATION
+    return LlmApplicationProgrammer.write({
+      context: props.context,
+      modulo: props.modulo,
+      metadata: analyze(false),
+      name: top.getFullText().trim(),
+      config,
+    });
   };
 
   /** @internal */
@@ -58,7 +87,7 @@ export namespace LlmApplicationTransformer {
     method: string,
     props: ITransformProps,
   ): {
-    application: ILlmApplication;
+    application: ILlmApplication.__IPrimitive;
     type: ts.Type;
     node: ts.TypeNode;
     config:
@@ -113,8 +142,8 @@ export namespace LlmApplicationTransformer {
                     })
                 : undefined,
           },
-          components: new MetadataStorage({
-            replace: MetadataStorage.replace,
+          components: new MetadataCollection({
+            replace: MetadataCollection.replace,
           }),
           type,
         });
@@ -129,7 +158,7 @@ export namespace LlmApplicationTransformer {
 
     // GENERATE LLM APPLICATION
     return {
-      application: LlmApplicationProgrammer.write({
+      application: LlmApplicationProgrammer.writeApplication({
         context: props.context,
         modulo: props.modulo,
         metadata: analyze(false),
@@ -142,11 +171,10 @@ export namespace LlmApplicationTransformer {
     };
   };
 
-  export const finalize = (props: {
+  export const getConfigArgument = (props: {
     context: ITypiaContext;
-    value: ts.Expression;
     argument: ts.Expression;
-    equals?: boolean;
+    equals?: boolean | undefined;
   }) => {
     const satisfiesTypeNode: ts.TypeNode = ts.factory.createTypeReferenceNode(
       ts.factory.createIdentifier("Partial"),
@@ -156,7 +184,7 @@ export namespace LlmApplicationTransformer {
           [
             ts.factory.createImportTypeNode(
               ts.factory.createLiteralTypeNode(
-                ts.factory.createStringLiteral("@samchon/openapi"),
+                ts.factory.createStringLiteral("typia"),
               ),
               undefined,
               ts.factory.createQualifiedName(
@@ -168,9 +196,6 @@ export namespace LlmApplicationTransformer {
             ),
             ts.factory.createUnionTypeNode([
               ts.factory.createLiteralTypeNode(
-                ts.factory.createStringLiteral("separate"),
-              ),
-              ts.factory.createLiteralTypeNode(
                 ts.factory.createStringLiteral("validate"),
               ),
             ]),
@@ -178,29 +203,22 @@ export namespace LlmApplicationTransformer {
         ),
       ],
     );
-    return ts.factory.createCallExpression(
-      props.context.importer.internal("llmApplicationFinalize"),
-      undefined,
+    return ts.factory.createObjectLiteralExpression(
       [
-        props.value,
-        ts.factory.createObjectLiteralExpression(
-          [
-            ts.factory.createSpreadAssignment(
-              ts.factory.createSatisfiesExpression(
-                props.argument,
-                satisfiesTypeNode,
-              ),
-            ),
-            ts.factory.createPropertyAssignment(
-              "equals",
-              props.equals === true
-                ? ts.factory.createTrue()
-                : ts.factory.createFalse(),
-            ),
-          ],
-          true,
+        ts.factory.createSpreadAssignment(
+          ts.factory.createSatisfiesExpression(
+            props.argument,
+            satisfiesTypeNode,
+          ),
+        ),
+        ts.factory.createPropertyAssignment(
+          "equals",
+          props.equals === true
+            ? ts.factory.createTrue()
+            : ts.factory.createFalse(),
         ),
       ],
+      true,
     );
   };
 }

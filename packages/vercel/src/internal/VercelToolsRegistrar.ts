@@ -9,7 +9,7 @@ import {
   ILlmSchema,
   IValidation,
 } from "@typia/interface";
-import { HttpLlm, stringifyValidationFailure } from "@typia/utils";
+import { HttpLlm, LlmJson } from "@typia/utils";
 
 export namespace VercelToolsRegistrar {
   /**
@@ -135,13 +135,14 @@ export namespace VercelToolsRegistrar {
       ),
 
       execute: async (args: object) => {
-        // Validate using typia's built-in validator
-        const validation: IValidation<unknown> = func.validate(args);
+        // Coerce and validate using typia's built-in functions
+        const coerced: unknown = LlmJson.coerce(args, func.parameters);
+        const validation: IValidation<unknown> = func.validate(coerced);
         if (!validation.success) {
           // Return validation error in LLM-friendly format
           return {
             error: true,
-            message: stringifyValidationFailure(validation),
+            message: LlmJson.stringify(validation),
           };
         }
 
